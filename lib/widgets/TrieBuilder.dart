@@ -56,22 +56,30 @@ class _TrieBuilderState extends State<TrieBuilder> {
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: <Widget>[
-                  Container(
-                    width: 0.55*MediaQuery.of(context).size.width,
-                    child: TextField(
-                      decoration: InputDecoration(
-                        labelText: "Word",
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)))
-                      ),
-                      onChanged: (val) {
-                        this.word = val;
-                        if (isLive) {
-                          this.trie.algoState.setDelay(0);
-                          trie.wordsWithPrefix(word);
-                        }
-                      },
-
-                    ),
+                  Consumer<AlgoState>(
+                    builder: (context, algoState, child) {
+                      return Container(
+                        width: 0.55*MediaQuery.of(context).size.width,
+                        child: TextField(
+                            decoration: InputDecoration(
+                                labelText: "Word",
+                                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)))
+                            ),
+                            onChanged: (val) {
+                              this.word = val;
+                              if (isLive) {
+                                this.trie.algoState.setDelay(0);
+                                trie.wordsWithPrefix(word);
+                              }
+                            },
+//                            onSubmitted: (val) {
+//                              if (!algoState.running && !isLive){
+//                                trie.insert(word);
+//                              }
+//                            }
+                        ),
+                      );
+                    },
                   ),
 
                   Consumer<AlgoState>(
