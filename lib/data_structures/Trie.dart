@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:trievisualize/data_structures/TrieNode.dart';
 import 'package:trievisualize/utils.dart';
@@ -15,10 +17,9 @@ class Trie {
 
   Trie();
 
-
   Trie.fromList(List<String> words) {
     for (String word in words) {
-      this.insert(word);
+      this.insertForLoader(word);
     }
     algoState.reset();
   }
@@ -49,6 +50,20 @@ class Trie {
     algoState.setFinish(true);
   }
 
+  void insertForLoader(String word) async {
+    word = word.toLowerCase();
+    TrieNode currentNode = this.head;
+    for (int i = 0; i < word.length; i++) {
+      String ch = word[i];
+      if (currentNode.containsChild(ch)) {
+        currentNode = currentNode.getChildNode(ch);
+      } else {
+        currentNode = currentNode.addChildNode(TrieNode(ch: ch));
+      }
+    }
+    currentNode.setWordEnd();
+  }
+
   bool contains(String word) {
     TrieNode currentNode = this.head;
 
@@ -70,6 +85,7 @@ class Trie {
     for (int i = 0; i < prefix.length; i++) {
       await pause(algoState.delay);
       algoState.registerVisitedNode(currentNode);
+      
 
       String ch = prefix[i];
       if (currentNode.containsChild(ch)) {
@@ -82,44 +98,137 @@ class Trie {
     return currentNode;
   }
 
-  Future<Set<String>> wordsWithPrefixHelper(String prefix,
-      {Set<String> words, TrieNode root}) async {
-    //print("Started searching with prefix $prefix");
-    if (words == null) {
-      words = Set();
-    }
+  // Future<TrieNode> _getNodeTill(String prefix) async {
+  //   TrieNode currentNode = this.head;
 
-    if (root == null) {
-      root = await _getNodeTill(prefix);
-    }
+  //   for (int i = 0; i < prefix.length; i++) {
+  //     await pause(algoState.delay);
+  //     algoState.registerVisitedNode(currentNode);
 
-    algoState.registerVisitedNode(root);
+  //     String ch = prefix[i];
+  //     if (currentNode.containsChild(ch)) {
+  //       currentNode = currentNode.getChildNode(ch);
+  //     } else {
+  //       throw Exception;
+  //     }
+  //   }
 
-    //print(root);
-    if (root.isWordEnd) words.add(prefix);
+  //   return currentNode;
+  // }
 
-    if (!root.isLeafNode) {
-      for (String ch in root.children.keys) {
-        await pause(algoState.delay);
-        wordsWithPrefixHelper(prefix + ch, words: words, root: root.getChildNode(ch));
+  // Future<Set<String>> wordsWithPrefixHelper(String prefix,
+  //     {Set<String> words, TrieNode root}) async {
+  //   //print("Started searching with prefix $prefix");
+  //   if (words == null) {
+  //     words = Set();
+  //   }
+
+  //   if (root == null) {
+  //     root = await _getNodeTill(prefix);
+  //   }
+
+  //   algoState.registerVisitedNode(root);
+
+  //   //print(root);
+  //   if (root.isWordEnd) words.add(prefix);
+
+  //   if (!root.isLeafNode) {
+  //     for (String ch in root.children.keys) {
+  //       await pause(algoState.delay);
+  //       await wordsWithPrefixHelper(prefix + ch, words: words, root: root.getChildNode(ch));
+  //     }
+  //   }
+
+  //   return words;
+  // }
+
+  // Future<Set<String>> wordsWithPrefixHelper(String prefix,
+  //     {Set<String> words, TrieNode root}) async {
+  //   //print("Started searching with prefix $prefix");
+  //   if (words == null) {
+  //     words = Set();
+  //   }
+
+  //   if (root == null) {
+  //     root = await _getNodeTill(prefix);
+  //   }
+
+  //   algoState.registerVisitedNode(root);
+
+  //   //print(root);
+  //   if (root.isWordEnd) words.add(prefix);
+
+  //   if (!root.isLeafNode) {
+  //     for (String ch in root.children.keys) {
+  //       await pause(algoState.delay);
+  //       wordsWithPrefixHelper(prefix + ch, words: words, root: root.getChildNode(ch));
+  //     }
+  //   }
+
+  //   return words;
+  // }
+
+
+  // void wordsWithPrefix(String prefix) async {
+  //   try {
+  //     algoState.reset();
+  //     algoState.setStart(true);
+  //     algoState.outputWords = await wordsWithPrefixHelper(prefix);
+  //     print("Finishing...");
+  //     algoState.setFinish(true);
+  //   } catch (ex) {
+  //     algoState.setFinish(true);
+  //   }
+
+  // }
+
+  
+
+  void wordsWithPrefix(String prefix, int callId) async {
+    algoState.reset();
+    algoState.setStart(true);
+
+    TrieNode root = await _getNodeTill(prefix);
+    var visited = Set();
+    
+    List<List<dynamic>> stack = [[prefix, root], ];
+    
+    recursion: while (stack.isNotEmpty) {
+
+      if (algoState.isCallCancelled(callId)) {
+        algoState.reset();
+        return;
+      }
+
+      await pause(algoState.delay);
+      var frame = stack.last; // PEEK()
+    
+      TrieNode node = frame[1];
+      String currPrefix = frame[0];
+      
+      if (node.isWordEnd) {
+        algoState.addOutputWord(currPrefix);
+      }
+    
+      if (!node.isLeafNode) {
+          for (String ch in node.children.keys) {
+            
+            if (visited.contains(currPrefix + ch)) continue;
+            
+            stack.add([currPrefix + ch, node.getChildNode(ch)]); // PUSH()
+            visited.add(currPrefix + ch);
+            algoState.registerVisitedNode(node);
+
+            continue recursion;
+          }
+          stack.removeLast(); // POP()
+      } else {
+        algoState.registerVisitedNode(node);
+        stack.removeLast(); // POP()
       }
     }
-
-    return words;
+    algoState.setFinish(true);
   }
-
-  void wordsWithPrefix(String prefix) async {
-    try {
-      algoState.reset();
-      algoState.setStart(true);
-      algoState.outputWords = await wordsWithPrefixHelper(prefix);
-      algoState.setFinish(true);
-    } catch (ex) {
-      algoState.setFinish(true);
-    }
-
-  }
-
 
   int getDepth({TrieNode root}) {
     if (root == null) {

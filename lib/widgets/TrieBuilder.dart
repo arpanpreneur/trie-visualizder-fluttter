@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:provider/provider.dart';
 import 'package:trievisualize/data_structures/Trie.dart';
+import 'package:trievisualize/utils.dart';
 import 'package:trievisualize/view_models/AlgoState.dart';
 import 'package:trievisualize/widgets/TrieNodeBuilder.dart';
 
@@ -15,12 +16,24 @@ class _TrieBuilderState extends State<TrieBuilder> {
   String word = "";
   bool isLive = false;
 
+  int lastCallId = 0;
+
   @override
   void initState() {
     super.initState();
     trie = new Trie();
     print(trie.algoState);
 
+  }
+
+  void callWordsWithPrefix(String prefix) {
+    if (lastCallId != 0) {
+      trie.algoState.cancelSearch(lastCallId);
+    }
+
+    int callId = DateTime.now().millisecondsSinceEpoch;
+    trie.wordsWithPrefix(prefix, callId);
+    lastCallId = callId;
   }
 
   @override
@@ -44,94 +57,116 @@ class _TrieBuilderState extends State<TrieBuilder> {
             IconButton(onPressed: () {
               trie.algoState.reset();
 
-            }, icon: Icon(Icons.format_color_reset),)
+            }, icon: Icon(Icons.format_color_reset),),
+
+            FlatButton(
+              colorBrightness: Brightness.dark,
+              child: Text("Load Sample Data"),
+              onPressed: (!isLive) ? () async {
+                List<String> words = await loadWords();
+                trie = Trie.fromList(words);
+                setState(() {
+                  
+                });
+              } : null,
+            ),
+
           ],
         ),
         body: ListView(
             physics: ClampingScrollPhysics(), children: [
-          Container(
-            width: MediaQuery.of(context).size.width,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisSize: MainAxisSize.max,
-                children: <Widget>[
-                  Consumer<AlgoState>(
-                    builder: (context, algoState, child) {
-                      return Container(
-                        width: 0.55*MediaQuery.of(context).size.width,
-                        child: TextField(
-                            decoration: InputDecoration(
-                                labelText: "Word",
-                                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)))
-                            ),
-                            onChanged: (val) {
-                              this.word = val;
-                              if (isLive) {
-                                this.trie.algoState.setDelay(0);
-                                trie.wordsWithPrefix(word);
-                              }
-                            },
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Container(
+              width: MediaQuery.of(context).size.width,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  children: <Widget>[
+                    Consumer<AlgoState>(
+                      builder: (context, algoState, child) {
+                        return Container(
+                          width: 0.55*MediaQuery.of(context).size.width,
+                          child: TextField(
+                              decoration: InputDecoration(
+                                  labelText: "Word",
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)))
+                              ),
+                              onChanged: (val) {
+                                this.word = val;
+                                if (isLive) {
+                                  this.trie.algoState.setDelay(0);
+                                  trie.algoState.reset();
+                                  
+                                  //trie.wordsWithPrefix(word);
+                                  callWordsWithPrefix(word);
+                                }
+                              },
 //                            onSubmitted: (val) {
 //                              if (!algoState.running && !isLive){
 //                                trie.insert(word);
 //                              }
 //                            }
-                        ),
-                      );
-                    },
-                  ),
-
-                  Consumer<AlgoState>(
-                    builder: (context, algoState, child) {
-                      return Row(
-                        children: <Widget>[
-                          IconButton(
-                            icon: Icon(Icons.add),
-                            onPressed: () {
-                              if (!algoState.running && !isLive){
-                                trie.insert(word);
-                              }
-
-                            },
                           ),
-                          IconButton(
-                            icon: Icon(Icons.search),
-                            onPressed: () {
-                              if (!algoState.running && !isLive)
-                                trie.wordsWithPrefix(word);
-                            },
-                          ),
-                          Visibility(
-                            visible: !isLive,
-                            child: IconButton(
-                              icon: Icon(Icons.play_arrow),
+                        );
+                      },
+                    ),
+
+                    Consumer<AlgoState>(
+                      builder: (context, algoState, child) {
+                        return Row(
+                          children: <Widget>[
+                            IconButton(
+                              icon: Icon(Icons.add),
                               onPressed: () {
-                                setState(() {
-                                  isLive = true;
-                                });
+                                if (!algoState.running && !isLive){
+                                  trie.insert(word);
+                                }
+
                               },
                             ),
-                          ),
-
-                          Visibility(
-                            visible: isLive,
-                            child: IconButton(
-                              icon: Icon(Icons.stop),
+                            IconButton(
+                              icon: Icon(Icons.search),
                               onPressed: () {
-                                setState(() {
-                                  isLive = false;
-                                });
+                                if (!algoState.running && !isLive)
+                                  //trie.wordsWithPrefix(word);
+                                  callWordsWithPrefix(word);
                               },
                             ),
-                          ),
+                            Visibility(
+                              visible: !isLive,
+                              child: IconButton(
+                                icon: Icon(Icons.play_arrow),
+                                onPressed: () {
+                                  setState(() {
+                                    isLive = true;
+                                  });
+                                },
+                              ),
+                            ),
 
-                        ],
-                      );
-                    },
+                            Visibility(
+                              visible: isLive,
+                              child: IconButton(
+                                icon: Icon(Icons.stop),
+                                onPressed: () {
+                                  setState(() {
+                                    isLive = false;
+                                    trie.algoState.cancelSearch(lastCallId);
+                                    trie.algoState.reset();
+                                  });
+                                },
+                              ),
+                            ),
 
-                  )
-                ],
+                          ],
+                        );
+                      },
+
+                    )
+                  ],
+                ),
               ),
             ),
           ),
@@ -155,7 +190,7 @@ class _TrieBuilderState extends State<TrieBuilder> {
           Consumer<AlgoState>(
             builder: (context, algoState, child) {
               return AnimatedOpacity(
-                opacity: (algoState.finished && algoState.outputWords.isNotEmpty) ? 1.0 : 0,
+                opacity: (algoState.outputWords.isNotEmpty) ? 1.0 : 0,
                 duration: Duration(milliseconds: 500),
                 child: Card(
                   child: AnimatedContainer(

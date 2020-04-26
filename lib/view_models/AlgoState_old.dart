@@ -4,7 +4,6 @@ import 'package:trievisualize/data_structures/TrieNode.dart';
 
 class AlgoState with ChangeNotifier {
   Set<TrieNode> _visited = Set();
-  Set<int> _cancelledCalls = Set();
 
   Set<String> outputWords = Set();
 
@@ -49,21 +48,8 @@ class AlgoState with ChangeNotifier {
     notifyListeners();
   }
 
-  void cancelSearch(int callId) {
-    _cancelledCalls.add(callId);
-  }
-
   bool isVisited(TrieNode node) {
     return _visited.contains(node);
-  }
-
-  bool isCallCancelled(int callId) {
-    return _cancelledCalls.contains(callId);
-  }
-
-  void addOutputWord(String word) {
-   outputWords.add(word);
-   notifyListeners();
   }
 
   void reset() {

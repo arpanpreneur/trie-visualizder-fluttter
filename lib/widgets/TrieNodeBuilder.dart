@@ -43,6 +43,7 @@ class _TrieNodeBuilderState extends State<TrieNodeBuilder> {
           ),
           child: AnimatedContainer(
             duration: Duration(milliseconds: 0),
+            //width:  (widget.node.isLeafNode) ? 20 : widget.trie.getTotalLeafNodeCount(root: widget.node)*20.0,
             width:  (widget.node.isLeafNode) ? 20 : widget.trie.getTotalLeafNodeCount(root: widget.node)*20.0,
             child: Column(
               mainAxisSize: MainAxisSize.min,
